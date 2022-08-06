@@ -1,5 +1,8 @@
 import { LitElement, html } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
+import { classMap } from 'lit/directives/class-map.js';
+import { map } from 'lit/directives/map.js';
+import { range } from 'lit/directives/range.js';
 import styles from './carousel.styles';
 import type { CSSResultGroup } from 'lit';
 
@@ -88,14 +91,20 @@ export default class SlCarousel extends LitElement {
     intersectionObserver.observe(this.lastSlideClone);
   }
 
+  scrollToSlide(index: number) {
+    const slides = this.getSlides();
+    slides.at(index)!.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
   disconnectedCallback(): void {
     this.intersectionObserver.disconnect();
   }
 
   render() {
     const currentSlide = this.currentSlide;
-    const slides = this.getSlides({ excludeClones: false });
-
+    const slides = this.getSlides();
+    const slidesCount = slides.length;
+    const slideIndex = slides.indexOf(this.currentSlide);
     const isFirstSlide = slides.at(0) === currentSlide;
     const isLastSlide = slides.at(-1) === currentSlide;
 
@@ -109,7 +118,21 @@ export default class SlCarousel extends LitElement {
           <slot></slot>
         </div>
 
-        <div part="nav" class="carousel__nav"></div>
+        <div part="nav" class="carousel__nav">
+          ${map(
+            range(slidesCount),
+            i =>
+              html`
+                <span
+                  @click="${() => this.scrollToSlide(i)}"
+                  class="${classMap({
+                    carousel__navIndicator: true,
+                    'carousel__navIndicator--active': i === slideIndex
+                  })}"
+                ></span>
+              `
+          )}
+        </div>
 
         <div part="prev-button" class="carousel__prev" @click="${this.handlePrevClick}">
           <sl-icon-button ?disabled="${isFirstSlide}" library="system" name="chevron-left"></sl-icon-button>

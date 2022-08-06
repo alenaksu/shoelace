@@ -38,8 +38,11 @@ export default css`
     grid-area: next;
   }
 
-  .carousel__nav: {
+  .carousel__nav {
     grid-area: nav;
+    display: flex;
+    gap: var(--sl-spacing-2x-small);
+    justify-content: center;
   }
 
   .carousel__slides {
@@ -65,5 +68,18 @@ export default css`
 
   .carousel__slides::-webkit-scrollbar {
     display: none;
+  }
+
+  .carousel__navIndicator {
+    display: block;
+    border-radius: var(--sl-border-radius-circle);
+    width: var(--sl-spacing-medium);
+    height: var(--sl-spacing-medium);
+    background-color: var(--sl-color-neutral-600);
+    cursor: pointer;
+  }
+
+  .carousel__navIndicator--active {
+    background-color: var(--sl-color-primary-600);
   }
 `;
