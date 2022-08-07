@@ -41,7 +41,7 @@ export default css`
   .carousel__nav {
     grid-area: nav;
     display: flex;
-    gap: var(--sl-spacing-2x-small);
+    gap: var(--sl-spacing-small);
     justify-content: center;
   }
 
@@ -73,8 +73,8 @@ export default css`
   .carousel__navIndicator {
     display: block;
     border-radius: var(--sl-border-radius-circle);
-    width: var(--sl-spacing-medium);
-    height: var(--sl-spacing-medium);
+    width: var(--sl-spacing-small);
+    height: var(--sl-spacing-small);
     background-color: var(--sl-color-neutral-600);
     cursor: pointer;
   }
