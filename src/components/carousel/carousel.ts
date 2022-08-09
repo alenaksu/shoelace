@@ -42,7 +42,7 @@ export default class SlCarousel extends LitElement {
     return [...this.slides].filter(slide => !excludeClones || !slide.hasAttribute('data-clone'));
   }
 
-  handleSlideIntersection = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
+  handleSlideIntersection = (entries: IntersectionObserverEntry[]) => {
     const [currentEntry] = entries.filter(entry => entry.isIntersecting);
     if (!currentEntry) {
       return;
@@ -125,6 +125,7 @@ export default class SlCarousel extends LitElement {
               html`
                 <span
                   @click="${() => this.scrollToSlide(i)}"
+                  @keypress=""
                   class="${classMap({
                     carousel__navIndicator: true,
                     'carousel__navIndicator--active': i === slideIndex
@@ -134,11 +135,21 @@ export default class SlCarousel extends LitElement {
           )}
         </div>
 
-        <div part="prev-button" class="carousel__prev" @click="${this.handlePrevClick}">
-          <sl-icon-button ?disabled="${isFirstSlide}" library="system" name="chevron-left"></sl-icon-button>
+        <div part="prev-button" class="carousel__prev">
+          <sl-icon-button
+            ?disabled="${isFirstSlide}"
+            library="system"
+            name="chevron-left"
+            @click="${this.handlePrevClick}"
+          ></sl-icon-button>
         </div>
-        <div part="next-button" class="carousel__next" @click="${this.handleNextClick}">
-          <sl-icon-button ?disabled="${isLastSlide}" library="system" name="chevron-right"></sl-icon-button>
+        <div part="next-button" class="carousel__next">
+          <sl-icon-button
+            ?disabled="${isLastSlide}"
+            library="system"
+            name="chevron-right"
+            @click="${this.handleNextClick}"
+          ></sl-icon-button>
         </div>
       </section>
     `;
