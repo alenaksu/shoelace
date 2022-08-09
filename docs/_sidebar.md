@@ -31,6 +31,7 @@
   - [Button](/components/button)
   - [Button Group](/components/button-group)
   - [Card](/components/card)
+  - [Carousel](/components/carousel)
   - [Checkbox](/components/checkbox)
   - [Color Picker](/components/color-picker)
   - [Details](/components/details)
@@ -66,6 +67,7 @@
   - [Tooltip](/components/tooltip)
   - [Tree](/components/tree)
   - [Tree Item](/components/tree-item)
+  - [Carousel](/components/carousel)
   <!--plop:component-->
 
 - Utilities
