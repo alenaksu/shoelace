@@ -1,14 +1,30 @@
-import { LocalizeController } from '@shoelace-style/localize';
 import { LitElement, html } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { map } from 'lit/directives/map.js';
 import { range } from 'lit/directives/range.js';
-import { animateTo } from 'src/internal/animate';
 import { watch } from 'src/internal/watch';
-import { getAnimation, setDefaultAnimation } from 'src/utilities/animation-registry';
 import styles from './carousel.styles';
 import type { CSSResultGroup } from 'lit';
+
+const waitForScrollEnd = (element: HTMLElement): Promise<void> =>
+  new Promise(resolve => {
+    let timerId = 0;
+
+    function handleScroll() {
+      clearTimeout(timerId);
+      wait();
+    }
+
+    element.addEventListener('scroll', handleScroll, { passive: true });
+
+    const wait = () => {
+      timerId = window.setTimeout(() => {
+        element.removeEventListener('scroll', handleScroll);
+        resolve();
+      }, 50);
+    };
+  });
 
 /**
  * @since 2.0
@@ -47,7 +63,7 @@ export default class SlCarousel extends LitElement {
     return [...this.slides].filter(slide => !excludeClones || !slide.hasAttribute('data-clone'));
   }
 
-  handleSlideIntersection = (entries: IntersectionObserverEntry[]) => {
+  handleSlideIntersection = async (entries: IntersectionObserverEntry[]) => {
     const [currentEntry] = entries.filter(entry => entry.isIntersecting);
     if (!currentEntry) {
       return;
@@ -55,19 +71,20 @@ export default class SlCarousel extends LitElement {
 
     const slides = this.getSlides({ excludeClones: false });
     const currentSlide = slides.indexOf(currentEntry.target as HTMLElement);
+    this.currentSlide = currentSlide;
 
     if (this.infinite) {
       if (currentSlide === 0) {
-        slides.at(-2)?.scrollIntoView({ block: 'nearest' });
+        await waitForScrollEnd(this.slidesContainer);
+        this.scrollToSlide(-2, 'auto');
       } else if (currentSlide === slides.length - 1) {
-        slides.at(1)?.scrollIntoView({ block: 'nearest' });
+        await waitForScrollEnd(this.slidesContainer);
+        this.scrollToSlide(1, 'auto');
       }
     }
-
-    this.currentSlide = currentSlide;
   };
 
-  @watch('infinite', { waitUntilFirstUpdate: true })
+  @watch('infinite')
   handleInfiniteChange() {
     const slides = this.getSlides();
     const intersectionObserver = this.intersectionObserver;
@@ -80,7 +97,7 @@ export default class SlCarousel extends LitElement {
       }
     });
 
-    this.scrollToSlide(0);
+    this.scrollToSlide(0, 'auto');
 
     if (this.infinite) {
       const lastClone = slides.at(-1)?.cloneNode(true) as HTMLElement;
@@ -106,31 +123,36 @@ export default class SlCarousel extends LitElement {
     this.scrollToSlide(this.currentSlide + 1);
   }
 
-  firstUpdated() {
+  connectedCallback(): void {
+    super.connectedCallback();
+
     const intersectionObserver = new IntersectionObserver(this.handleSlideIntersection, {
       root: this.slidesContainer,
-      threshold: 1
+      threshold: 0.6
     });
     this.intersectionObserver = intersectionObserver;
-
-    this.handleInfiniteChange();
-  }
-
-  scrollToSlide(index: number) {
-    const slides = this.getSlides({ excludeClones: false });
-    const slideIndex = (index + slides.length) % slides.length;
-    slides.at(slideIndex)!.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   disconnectedCallback(): void {
+    super.disconnectedCallback();
     this.intersectionObserver.disconnect();
   }
 
-  render() {
-    const currentSlide = this.currentSlide;
-    const infinite = this.infinite;
+  scrollToSlide(index: number, behavior: ScrollBehavior = 'smooth') {
     const slides = this.getSlides({ excludeClones: false });
+    const slideIndex = (index + slides.length) % slides.length;
+    slides.at(slideIndex)!.scrollIntoView({ block: 'nearest', behavior });
+  }
+
+  protected firstUpdated(): void {
+    this.scrollToSlide(this.infinite ? 1 : 0, 'auto');
+  }
+
+  render() {
+    const infinite = this.infinite;
+    const slides = this.getSlides();
     const slidesCount = slides.length;
+    const currentSlide = (this.currentSlide - Number(infinite) + slidesCount) % slidesCount;
     const prevEnabled = !infinite && currentSlide === 0;
     const nextEnabled = !infinite && currentSlide === slides.length;
 
@@ -146,7 +168,7 @@ export default class SlCarousel extends LitElement {
 
         <div part="nav" class="carousel__nav">
           ${map(
-            range(Number(infinite), slidesCount - Number(infinite)),
+            range(slidesCount),
             i =>
               html`
                 <span
