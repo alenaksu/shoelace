@@ -1,9 +1,12 @@
+import { LocalizeController } from '@shoelace-style/localize';
 import { LitElement, html } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { map } from 'lit/directives/map.js';
 import { range } from 'lit/directives/range.js';
+import { animateTo } from 'src/internal/animate';
 import { watch } from 'src/internal/watch';
+import { getAnimation, setDefaultAnimation } from 'src/utilities/animation-registry';
 import styles from './carousel.styles';
 import type { CSSResultGroup } from 'lit';
 
@@ -53,13 +56,15 @@ export default class SlCarousel extends LitElement {
     const slides = this.getSlides({ excludeClones: false });
     const currentSlide = slides.indexOf(currentEntry.target as HTMLElement);
 
-    if (currentSlide === 0) {
-      slides.at(-2)?.scrollIntoView({ block: 'nearest' });
-    } else if (currentSlide === slides.length - 1) {
-      slides.at(1)?.scrollIntoView({ block: 'nearest' });
-    } else {
-      this.currentSlide = currentSlide;
+    if (this.infinite) {
+      if (currentSlide === 0) {
+        slides.at(-2)?.scrollIntoView({ block: 'nearest' });
+      } else if (currentSlide === slides.length - 1) {
+        slides.at(1)?.scrollIntoView({ block: 'nearest' });
+      }
     }
+
+    this.currentSlide = currentSlide;
   };
 
   @watch('infinite', { waitUntilFirstUpdate: true })
@@ -86,11 +91,11 @@ export default class SlCarousel extends LitElement {
 
       this.prepend(lastClone);
       this.append(firstClone);
-
-      this.getSlides({ excludeClones: false }).forEach(slide => {
-        intersectionObserver.observe(slide);
-      });
     }
+
+    this.getSlides({ excludeClones: false }).forEach(slide => {
+      intersectionObserver.observe(slide);
+    });
   }
 
   handlePrevClick() {
@@ -113,7 +118,6 @@ export default class SlCarousel extends LitElement {
 
   scrollToSlide(index: number) {
     const slides = this.getSlides({ excludeClones: false });
-
     const slideIndex = (index + slides.length) % slides.length;
     slides.at(slideIndex)!.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
