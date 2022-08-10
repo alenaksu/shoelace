@@ -4,6 +4,7 @@ import { classMap } from 'lit/directives/class-map.js';
 import { map } from 'lit/directives/map.js';
 import { range } from 'lit/directives/range.js';
 import { when } from 'lit/directives/when.js';
+import { emit } from 'src/internal/event';
 import { watch } from 'src/internal/watch';
 import styles from './carousel.styles';
 import type { CSSResultGroup } from 'lit';
@@ -31,16 +32,20 @@ const waitForScrollEnd = (element: HTMLElement): Promise<void> =>
  * @since 2.0
  * @status experimental
  *
- * @dependency sl-example
+ * @dependency sl-icon-button
  *
- * @event sl-event-name - Emitted as an example.
+ * @event sl-slide-change - Emitted when the active slide changes.
  *
  * @slot - The default slot.
- * @slot example - An example slot.
  *
- * @csspart base - The component's internal wrapper.
+ * @csspart base - The carousel's internal wrapper.
+ * @csspart heading - The carousel's internal wrapper.
+ * @csspart slides - The scroll container that wraps the slides.
+ * @csspart pagination - The pagination indicators wrapper.
+ * @csspart controls - The controls wrapper.
+ * @csspart carousel__prevButton - The prev button.
+ * @csspart carousel__nextButton - The next button.
  *
- * @cssproperty --example - An example CSS custom property.
  */
 @customElement('sl-carousel')
 export default class SlCarousel extends LitElement {
@@ -80,15 +85,21 @@ export default class SlCarousel extends LitElement {
     const currentSlide = slides.indexOf(currentEntry.target as HTMLElement);
     this.currentSlide = currentSlide;
 
+    await waitForScrollEnd(this.slidesContainer);
+
     if (this.loop) {
       if (currentSlide === 0) {
-        await waitForScrollEnd(this.slidesContainer);
+        // If we are on the last slide clone, move the focus on the last slide
         this.scrollToSlide(-2, 'auto');
+        return;
       } else if (currentSlide === slides.length - 1) {
-        await waitForScrollEnd(this.slidesContainer);
+        // If we are on the first slide clone, move the focus on the first slide
         this.scrollToSlide(1, 'auto');
+        return;
       }
     }
+
+    emit(this, 'sl-slide-change', { detail: currentEntry.target });
   };
 
   @watch('loop')
@@ -147,11 +158,13 @@ export default class SlCarousel extends LitElement {
 
   scrollToSlide(index: number, behavior: ScrollBehavior = 'smooth') {
     const slides = this.getSlides({ excludeClones: false });
-    const slideIndex = (index + slides.length) % slides.length;
-    slides.at(slideIndex)!.scrollIntoView({ block: 'nearest', behavior });
+    const normalizedIndex = (index + slides.length) % slides.length;
+    slides.at(normalizedIndex)!.scrollIntoView({ block: 'nearest', behavior });
   }
 
   protected firstUpdated(): void {
+    // If loop is set, then move the focus to the second slide as the first one
+    // will be clone of the last
     this.scrollToSlide(this.loop ? 1 : 0, 'auto');
   }
 
@@ -159,14 +172,17 @@ export default class SlCarousel extends LitElement {
     const { loop, showControls, showPagination } = this;
     const slides = this.getSlides();
     const slidesCount = slides.length;
+
+    // Normalize index to not take clones into account
     const currentSlideIndex = (this.currentSlide - Number(loop) + slidesCount) % slidesCount;
+
     const prevEnabled = !loop && currentSlideIndex === 0;
     const nextEnabled = !loop && currentSlideIndex === slides.length - 1;
 
     return html`
       <section part="base" class="carousel">
         <div part="heading" class="carousel__heading">
-          <slot name="heading">${this.heading} ${currentSlideIndex}</slot>
+          <slot name="heading">${this.heading}</slot>
         </div>
 
         <div part="slides" class="carousel__slides">
@@ -198,22 +214,23 @@ export default class SlCarousel extends LitElement {
           showControls,
           () => html`
             <div part="controls" class="carousel__controls">
-              <div part="controls__prev" class="carousel__prev">
-                <sl-icon-button
-                  ?disabled="${prevEnabled}"
-                  library="system"
-                  name="chevron-left"
-                  @click="${this.handlePrevClick}"
-                ></sl-icon-button>
-              </div>
-              <div part="controls__next" class="carousel__next">
-                <sl-icon-button
-                  ?disabled="${nextEnabled}"
-                  library="system"
-                  name="chevron-right"
-                  @click="${this.handleNextClick}"
-                ></sl-icon-button>
-              </div>
+              <sl-icon-button
+                part="carousel__prevButton"
+                class="carousel__prevButton"
+                ?disabled="${prevEnabled}"
+                library="system"
+                name="chevron-left"
+                @click="${this.handlePrevClick}"
+              ></sl-icon-button>
+
+              <sl-icon-button
+                part="carousel__nextButton"
+                class="carousel__nextButton"
+                ?disabled="${nextEnabled}"
+                library="system"
+                name="chevron-right"
+                @click="${this.handleNextClick}"
+              ></sl-icon-button>
             </div>
           `
         )}

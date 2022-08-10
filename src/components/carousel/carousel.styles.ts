@@ -74,12 +74,12 @@ export default css`
     font-size: var(--sl-font-size-2x-large);
   }
 
-  .carousel__prev {
+  .carousel__prevButton {
     grid-column: 1;
     grid-row: 2;
   }
 
-  .carousel__next {
+  .carousel__nextButton {
     grid-column: 3;
     grid-row: 2;
   }
