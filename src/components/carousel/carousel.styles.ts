@@ -56,9 +56,11 @@ export default css`
     overscroll-behavior-x: contain;
 
     scrollbar-width: none;
+
+    padding-inline: var(--sl-spacing-small);
   }
 
-  .carousel__slides ::slotted(sl-carousel-slide) {
+  .carousel__slides ::slotted(*) {
     scroll-snap-align: center;
     /* scroll-snap-stop: always; */
   }

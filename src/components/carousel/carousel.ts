@@ -68,11 +68,12 @@ export default class SlCarousel extends LitElement {
 
   @state() currentSlide: number;
 
-  private slides = this.getElementsByTagName('sl-carousel-slide');
   private intersectionObserver: IntersectionObserver;
 
   getSlides({ excludeClones = true }: { excludeClones?: boolean } = {}) {
-    return [...this.slides].filter(slide => !excludeClones || !slide.hasAttribute('data-clone'));
+    return [...this.defaultSlot.assignedElements({ flatten: true })].filter(
+      slide => !excludeClones || !slide.hasAttribute('data-clone')
+    );
   }
 
   handleSlideIntersection = async (entries: IntersectionObserverEntry[]) => {
@@ -83,26 +84,27 @@ export default class SlCarousel extends LitElement {
 
     const slides = this.getSlides({ excludeClones: false });
     const currentSlide = slides.indexOf(currentEntry.target as HTMLElement);
-    this.currentSlide = currentSlide;
 
-    await waitForScrollEnd(this.slidesContainer);
+    if (currentSlide !== this.currentSlide) {
+      this.currentSlide = currentSlide;
 
-    if (this.loop) {
-      if (currentSlide === 0) {
-        // If we are on the last slide clone, move the focus on the last slide
-        this.scrollToSlide(-2, 'auto');
-        return;
-      } else if (currentSlide === slides.length - 1) {
-        // If we are on the first slide clone, move the focus on the first slide
-        this.scrollToSlide(1, 'auto');
-        return;
+      if (this.loop) {
+        if (currentSlide === 0) {
+          // If we are on the last slide clone, move the focus on the last slide
+          await waitForScrollEnd(this.slidesContainer);
+          this.scrollToSlide(-2, 'auto');
+        } else if (currentSlide === slides.length - 1) {
+          // If we are on the first slide clone, move the focus on the first slide
+          await waitForScrollEnd(this.slidesContainer);
+          this.scrollToSlide(1, 'auto');
+        }
       }
-    }
 
-    emit(this, 'sl-slide-change', { detail: currentEntry.target });
+      emit(this, 'sl-slide-change', { detail: currentEntry.target });
+    }
   };
 
-  @watch('loop')
+  @watch('loop', { waitUntilFirstUpdate: true })
   handleLoopChange() {
     const slides = this.getSlides();
     const intersectionObserver = this.intersectionObserver;
@@ -146,7 +148,7 @@ export default class SlCarousel extends LitElement {
 
     const intersectionObserver = new IntersectionObserver(this.handleSlideIntersection, {
       root: this.slidesContainer,
-      threshold: 0.6
+      threshold: 1.0
     });
     this.intersectionObserver = intersectionObserver;
   }
@@ -164,12 +166,45 @@ export default class SlCarousel extends LitElement {
 
   protected firstUpdated(): void {
     // If loop is set, then move the focus to the second slide as the first one
-    // will be clone of the last
+    // will be the clone of the last
     this.scrollToSlide(this.loop ? 1 : 0, 'auto');
+
+    this.handleLoopChange();
+
+    // Pagination and controls will not render until the first update has happened
+    // so let's trigger one more to let them update.
+    this.requestUpdate();
   }
 
-  render() {
-    const { loop, showControls, showPagination } = this;
+  renderPagination = () => {
+    const slides = this.getSlides();
+    const slidesCount = slides.length;
+
+    // Normalize index to not take clones into account
+    const currentSlideIndex = (this.currentSlide - Number(this.loop) + slidesCount) % slidesCount;
+
+    return html`
+      <div part="pagination" class="carousel__pagination">
+        ${map(
+          range(slidesCount),
+          i =>
+            html`
+              <span
+                @click="${() => this.scrollToSlide(i)}"
+                @keypress=""
+                class="${classMap({
+                  carousel__indicator: true,
+                  'carousel__indicator--active': i === currentSlideIndex
+                })}"
+              ></span>
+            `
+        )}
+      </div>
+    `;
+  };
+
+  renderControls = () => {
+    const loop = this.loop;
     const slides = this.getSlides();
     const slidesCount = slides.length;
 
@@ -180,6 +215,30 @@ export default class SlCarousel extends LitElement {
     const nextEnabled = !loop && currentSlideIndex === slides.length - 1;
 
     return html`
+      <div part="controls" class="carousel__controls">
+        <sl-icon-button
+          part="carousel__prevButton"
+          class="carousel__prevButton"
+          ?disabled="${prevEnabled}"
+          library="system"
+          name="chevron-left"
+          @click="${this.handlePrevClick}"
+        ></sl-icon-button>
+
+        <sl-icon-button
+          part="carousel__nextButton"
+          class="carousel__nextButton"
+          ?disabled="${nextEnabled}"
+          library="system"
+          name="chevron-right"
+          @click="${this.handleNextClick}"
+        ></sl-icon-button>
+      </div>
+    `;
+  };
+
+  render() {
+    return html`
       <section part="base" class="carousel">
         <div part="heading" class="carousel__heading">
           <slot name="heading">${this.heading}</slot>
@@ -189,51 +248,8 @@ export default class SlCarousel extends LitElement {
           <slot></slot>
         </div>
 
-        ${when(
-          showPagination,
-          () => html`
-            <div part="pagination" class="carousel__pagination">
-              ${map(
-                range(slidesCount),
-                i =>
-                  html`
-                    <span
-                      @click="${() => this.scrollToSlide(i)}"
-                      @keypress=""
-                      class="${classMap({
-                        carousel__indicator: true,
-                        'carousel__indicator--active': i === currentSlideIndex
-                      })}"
-                    ></span>
-                  `
-              )}
-            </div>
-          `
-        )}
-        ${when(
-          showControls,
-          () => html`
-            <div part="controls" class="carousel__controls">
-              <sl-icon-button
-                part="carousel__prevButton"
-                class="carousel__prevButton"
-                ?disabled="${prevEnabled}"
-                library="system"
-                name="chevron-left"
-                @click="${this.handlePrevClick}"
-              ></sl-icon-button>
-
-              <sl-icon-button
-                part="carousel__nextButton"
-                class="carousel__nextButton"
-                ?disabled="${nextEnabled}"
-                library="system"
-                name="chevron-right"
-                @click="${this.handleNextClick}"
-              ></sl-icon-button>
-            </div>
-          `
-        )}
+        ${when(this.hasUpdated && this.showPagination, this.renderPagination)}
+        ${when(this.hasUpdated && this.showControls, this.renderControls)}
       </section>
     `;
   }

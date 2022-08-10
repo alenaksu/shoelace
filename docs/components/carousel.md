@@ -6,18 +6,17 @@ A description of the component goes here.
 
 ```html preview
 <div class="carousel-options">
-    <sl-switch name="loop"> Loop </sl-switch>
-    <sl-switch name="show-controls"> Show controls </sl-switch>
-    <sl-switch name="show-pagination"> Show pagination </sl-switch>
+  <sl-switch name="loop"> Loop </sl-switch>
+  <sl-switch name="show-controls"> Show controls </sl-switch>
+  <sl-switch name="show-pagination"> Show pagination </sl-switch>
 </div>
 <sl-divider></sl-divider>
 <sl-carousel heading="Example carousel">
-  <sl-carousel-slide><img src="https://picsum.photos/530/300/?random=1" /></sl-carousel-slide>
-  <sl-carousel-slide><img src="https://picsum.photos/530/300/?random=2" /></sl-carousel-slide>
-  <sl-carousel-slide><img src="https://picsum.photos/530/300/?random=3" /></sl-carousel-slide>
-  <sl-carousel-slide><img src="https://picsum.photos/530/300/?random=4" /></sl-carousel-slide>
-<sl-carousel-slide><img src="https://picsum.photos/530/300/?random=5" /></sl-carousel-slide>
-</sl-carousel>
+  <img src="https://picsum.photos/530/300/?random=1" />
+  <img src="https://picsum.photos/530/300/?random=2" />
+  <img src="https://picsum.photos/530/300/?random=3" />
+  <img src="https://picsum.photos/530/300/?random=4" />
+  <img src="https://picsum.photos/530/300/?random=5" />
 </sl-carousel>
 <style>
   img {
@@ -49,12 +48,11 @@ A description of the component goes here.
 
 ```html preview
 <sl-carousel class="vertical" heading="Vertical scrolling" loop show-pagination>
-  <sl-carousel-slide><img src="https://picsum.photos/530/300/?random=1" /></sl-carousel-slide>
-  <sl-carousel-slide><img src="https://picsum.photos/530/300/?random=2" /></sl-carousel-slide>
-  <sl-carousel-slide><img src="https://picsum.photos/530/300/?random=3" /></sl-carousel-slide>
-  <sl-carousel-slide><img src="https://picsum.photos/530/300/?random=4" /></sl-carousel-slide>
-<sl-carousel-slide><img src="https://picsum.photos/530/300/?random=5" /></sl-carousel-slide>
-</sl-carousel>
+  <img src="https://picsum.photos/530/300/?random=1" />
+  <img src="https://picsum.photos/530/300/?random=2" />
+  <img src="https://picsum.photos/530/300/?random=3" />
+  <img src="https://picsum.photos/530/300/?random=4" />
+  <img src="https://picsum.photos/530/300/?random=5" />
 </sl-carousel>
 <style>
   .vertical img {
@@ -83,6 +81,11 @@ A description of the component goes here.
     display: flex;
   }
 </style>
+<script>
+  document.querySelector('sl-carousel.vertical').addEventListener('sl-slide-change', e => {
+    console.log(e.detail);
+  });
+</script>
 ```
 
 ### Second Example
