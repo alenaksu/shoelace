@@ -3,6 +3,7 @@ import { customElement, property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { map } from 'lit/directives/map.js';
 import { range } from 'lit/directives/range.js';
+import { when } from 'lit/directives/when.js';
 import { watch } from 'src/internal/watch';
 import styles from './carousel.styles';
 import type { CSSResultGroup } from 'lit';
@@ -48,8 +49,14 @@ export default class SlCarousel extends LitElement {
   /** The carousel's heading. */
   @property() heading = 'example';
 
-  /** */
-  @property({ type: Boolean }) infinite = false;
+  /** When set, allows the user to navigate the carousel in the same direction indefinitely */
+  @property({ type: Boolean, reflect: true }) loop = false;
+
+  /** When set, show the carousel's navigation controls */
+  @property({ type: Boolean, reflect: true, attribute: 'show-controls' }) showControls = false;
+
+  /** When set, show the carousel's pagination indicators */
+  @property({ type: Boolean, reflect: true, attribute: 'show-pagination' }) showPagination = false;
 
   @query('slot:not([name])') defaultSlot: HTMLSlotElement;
   @query('.carousel__slides') slidesContainer: HTMLDivElement;
@@ -73,7 +80,7 @@ export default class SlCarousel extends LitElement {
     const currentSlide = slides.indexOf(currentEntry.target as HTMLElement);
     this.currentSlide = currentSlide;
 
-    if (this.infinite) {
+    if (this.loop) {
       if (currentSlide === 0) {
         await waitForScrollEnd(this.slidesContainer);
         this.scrollToSlide(-2, 'auto');
@@ -84,8 +91,8 @@ export default class SlCarousel extends LitElement {
     }
   };
 
-  @watch('infinite')
-  handleInfiniteChange() {
+  @watch('loop')
+  handleLoopChange() {
     const slides = this.getSlides();
     const intersectionObserver = this.intersectionObserver;
 
@@ -99,7 +106,7 @@ export default class SlCarousel extends LitElement {
 
     this.scrollToSlide(0, 'auto');
 
-    if (this.infinite) {
+    if (this.loop) {
       const lastClone = slides.at(-1)?.cloneNode(true) as HTMLElement;
       lastClone.setAttribute('data-clone', '');
 
@@ -145,60 +152,71 @@ export default class SlCarousel extends LitElement {
   }
 
   protected firstUpdated(): void {
-    this.scrollToSlide(this.infinite ? 1 : 0, 'auto');
+    this.scrollToSlide(this.loop ? 1 : 0, 'auto');
   }
 
   render() {
-    const infinite = this.infinite;
+    const { loop, showControls, showPagination } = this;
     const slides = this.getSlides();
     const slidesCount = slides.length;
-    const currentSlide = (this.currentSlide - Number(infinite) + slidesCount) % slidesCount;
-    const prevEnabled = !infinite && currentSlide === 0;
-    const nextEnabled = !infinite && currentSlide === slides.length;
+    const currentSlideIndex = (this.currentSlide - Number(loop) + slidesCount) % slidesCount;
+    const prevEnabled = !loop && currentSlideIndex === 0;
+    const nextEnabled = !loop && currentSlideIndex === slides.length - 1;
 
     return html`
-      <section class="carousel">
+      <section part="base" class="carousel">
         <div part="heading" class="carousel__heading">
-          <slot name="heading">${this.heading} ${currentSlide}</slot>
+          <slot name="heading">${this.heading} ${currentSlideIndex}</slot>
         </div>
 
         <div part="slides" class="carousel__slides">
           <slot></slot>
         </div>
 
-        <div part="nav" class="carousel__nav">
-          ${map(
-            range(slidesCount),
-            i =>
-              html`
-                <span
-                  @click="${() => this.scrollToSlide(i)}"
-                  @keypress=""
-                  class="${classMap({
-                    carousel__navIndicator: true,
-                    'carousel__navIndicator--active': i === currentSlide
-                  })}"
-                ></span>
-              `
-          )}
-        </div>
-
-        <div part="prev-button" class="carousel__prev">
-          <sl-icon-button
-            ?disabled="${prevEnabled}"
-            library="system"
-            name="chevron-left"
-            @click="${this.handlePrevClick}"
-          ></sl-icon-button>
-        </div>
-        <div part="next-button" class="carousel__next">
-          <sl-icon-button
-            ?disabled="${nextEnabled}"
-            library="system"
-            name="chevron-right"
-            @click="${this.handleNextClick}"
-          ></sl-icon-button>
-        </div>
+        ${when(
+          showPagination,
+          () => html`
+            <div part="pagination" class="carousel__pagination">
+              ${map(
+                range(slidesCount),
+                i =>
+                  html`
+                    <span
+                      @click="${() => this.scrollToSlide(i)}"
+                      @keypress=""
+                      class="${classMap({
+                        carousel__indicator: true,
+                        'carousel__indicator--active': i === currentSlideIndex
+                      })}"
+                    ></span>
+                  `
+              )}
+            </div>
+          `
+        )}
+        ${when(
+          showControls,
+          () => html`
+            <div part="controls" class="carousel__controls">
+              <div part="controls__prev" class="carousel__prev">
+                <sl-icon-button
+                  ?disabled="${prevEnabled}"
+                  library="system"
+                  name="chevron-left"
+                  @click="${this.handlePrevClick}"
+                ></sl-icon-button>
+              </div>
+              <div part="controls__next" class="carousel__next">
+                <sl-icon-button
+                  ?disabled="${nextEnabled}"
+                  library="system"
+                  name="chevron-right"
+                  @click="${this.handleNextClick}"
+                ></sl-icon-button>
+              </div>
+            </div>
+          `
+        )}
       </section>
     `;
   }

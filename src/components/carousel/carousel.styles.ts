@@ -10,14 +10,15 @@ export default css`
 
   .carousel {
     display: grid;
-    grid-template-columns: auto 1fr auto;
-    grid-template-rows: auto 1fr auto;
-    gap: var(--sl-spacing-small);
+
+    grid-template-columns: min-content 1fr min-content;
+    grid-template-rows: min-content 1fr min-content;
     grid-template-areas:
       '. heading .'
-      'prev slides next'
-      '. nav .';
+      '. slides .'
+      '. pagination .';
 
+    gap: var(--sl-spacing-small);
     align-items: center;
   }
 
@@ -30,19 +31,14 @@ export default css`
     font-size: var(--sl-font-size-large);
   }
 
-  .carousel__prev {
-    grid-area: prev;
-  }
+  .carousel__pagination {
+    grid-area: pagination;
 
-  .carousel__next {
-    grid-area: next;
-  }
-
-  .carousel__nav {
-    grid-area: nav;
     display: flex;
-    gap: var(--sl-spacing-small);
     justify-content: center;
+    gap: var(--sl-spacing-small);
+
+    padding-inline: var(--sl-spacing-medium);
   }
 
   .carousel__slides {
@@ -50,6 +46,7 @@ export default css`
 
     display: grid;
     grid-auto-columns: 100%;
+    grid-auto-rows: 100%;
     grid-auto-flow: column;
     align-items: center;
     gap: var(--sl-spacing-medium);
@@ -59,8 +56,6 @@ export default css`
     overscroll-behavior-x: contain;
 
     scrollbar-width: none;
-
-    padding-inline: 2rem;
   }
 
   .carousel__slides ::slotted(sl-carousel-slide) {
@@ -72,7 +67,24 @@ export default css`
     display: none;
   }
 
-  .carousel__navIndicator {
+  .carousel__controls {
+    grid-area: controls;
+    display: contents;
+
+    font-size: var(--sl-font-size-2x-large);
+  }
+
+  .carousel__prev {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .carousel__next {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .carousel__indicator {
     display: block;
     border-radius: var(--sl-border-radius-circle);
     width: var(--sl-spacing-small);
@@ -81,7 +93,7 @@ export default css`
     cursor: pointer;
   }
 
-  .carousel__navIndicator--active {
+  .carousel__indicator--active {
     background-color: var(--sl-color-primary-600);
   }
 `;
