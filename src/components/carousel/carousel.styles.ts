@@ -5,10 +5,14 @@ export default css`
   ${componentStyles}
 
   :host {
+    --gutters: var(--sl-spacing-large);
     display: block;
   }
 
   .carousel {
+    min-height: 100%;
+    min-width: 100%;
+
     display: grid;
 
     grid-template-columns: min-content 1fr min-content;
@@ -49,7 +53,8 @@ export default css`
     grid-auto-rows: 100%;
     grid-auto-flow: column;
     align-items: center;
-    gap: var(--sl-spacing-medium);
+
+    gap: var(--gutters);
 
     overflow-x: auto;
     scroll-snap-type: x mandatory;
@@ -58,11 +63,7 @@ export default css`
     scrollbar-width: none;
 
     padding-inline: var(--sl-spacing-small);
-  }
-
-  .carousel__slides ::slotted(*) {
-    scroll-snap-align: center;
-    /* scroll-snap-stop: always; */
+    padding-block: var(--sl-spacing-small);
   }
 
   .carousel__slides::-webkit-scrollbar {
