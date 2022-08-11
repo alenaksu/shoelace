@@ -90,6 +90,7 @@ A description of the component goes here.
 
 ### Scroll hint
 
+```html preview
 <sl-carousel class="scroll-hint" show-controls show-pagination>
   <sl-carousel-item><img src="https://picsum.photos/530/300/?random=1" /></sl-carousel-item>
   <sl-carousel-item><img src="https://picsum.photos/530/300/?random=2" /></sl-carousel-item>
@@ -103,6 +104,7 @@ A description of the component goes here.
     padding-inline: 5rem;
   }
 </style>
+```
 
 ### HTMLContent
 
