@@ -55,6 +55,7 @@ export { default as SlTree } from './components/tree/tree';
 export { default as SlTreeItem } from './components/tree-item/tree-item';
 export { default as SlVisuallyHidden } from './components/visually-hidden/visually-hidden';
 export { default as SlCarousel } from './components/carousel/carousel';
+export { default as SlCarouselItem } from './components/carousel-item/carousel-item';
 /* plop:component */
 
 // Utilities
