@@ -248,6 +248,7 @@ export default class SlCarousel extends LitElement {
 
     const prevEnabled = !loop && activeSlideIndex === 0;
     const nextEnabled = !loop && activeSlideIndex === slides.length - 1;
+    const isLtr = this.localize.dir() === 'ltr';
 
     return html`
       <nav part="controls" class="carousel__controls">
@@ -257,7 +258,7 @@ export default class SlCarousel extends LitElement {
           class="carousel__prevButton"
           ?disabled="${prevEnabled}"
           library="system"
-          name="chevron-left"
+          name="${isLtr ? 'chevron-left' : 'chevron-right'}"
           @click="${() => this.prevSlide()}"
         ></sl-icon-button>
 
@@ -267,7 +268,7 @@ export default class SlCarousel extends LitElement {
           class="carousel__nextButton"
           ?disabled="${nextEnabled}"
           library="system"
-          name="chevron-right"
+          name="${isLtr ? 'chevron-right' : 'chevron-left'}"
           @click="${() => this.nextSlide()}"
         ></sl-icon-button>
       </nav>
