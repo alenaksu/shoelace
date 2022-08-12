@@ -5,8 +5,10 @@ export default css`
   ${componentStyles}
 
   :host {
-    --gutters: var(--sl-spacing-large);
     display: block;
+
+    --gutters: var(--sl-spacing-medium);
+    --controls-size: var(--sl-font-size-2x-large);
   }
 
   .carousel {
@@ -22,7 +24,6 @@ export default css`
       '. slides .'
       '. pagination .';
 
-    gap: var(--sl-spacing-small);
     align-items: center;
   }
 
@@ -41,12 +42,13 @@ export default css`
     display: flex;
     justify-content: center;
     gap: var(--sl-spacing-small);
-
-    padding-inline: var(--sl-spacing-medium);
   }
 
   .carousel__slides {
     grid-area: slides;
+
+    width: 100%;
+    height: 100%;
 
     display: grid;
     grid-auto-columns: 100%;
@@ -56,7 +58,7 @@ export default css`
 
     gap: var(--gutters);
 
-    overflow-x: auto;
+    overflow: auto;
     scroll-snap-type: x mandatory;
     overscroll-behavior-x: contain;
 
@@ -74,7 +76,7 @@ export default css`
     grid-area: controls;
     display: contents;
 
-    font-size: var(--sl-font-size-2x-large);
+    font-size: var(--controls-size);
   }
 
   .carousel__prevButton {
@@ -89,14 +91,17 @@ export default css`
 
   .carousel__indicator {
     display: block;
+    cursor: pointer;
     border-radius: var(--sl-border-radius-circle);
     width: var(--sl-spacing-small);
     height: var(--sl-spacing-small);
     background-color: var(--sl-color-neutral-600);
-    cursor: pointer;
+    will-change: transform;
+    transition: var(--sl-transition-fast) transform;
   }
 
   .carousel__indicator--active {
     background-color: var(--sl-color-primary-600);
+    transform: scale(1.2);
   }
 `;

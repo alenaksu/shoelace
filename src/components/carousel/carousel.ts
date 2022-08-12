@@ -6,6 +6,7 @@ import { range } from 'lit/directives/range.js';
 import { when } from 'lit/directives/when.js';
 import { debounce } from 'src/internal/debounce';
 import { emit } from 'src/internal/event';
+import { scrollIntoView } from 'src/internal/scroll';
 import { watch } from 'src/internal/watch';
 import styles from './carousel.styles';
 import type SlCarouselItem from '../carousel-item/carousel-item';
@@ -37,26 +38,54 @@ export default class SlCarousel extends LitElement {
   /** The carousel's heading. */
   @property() heading = '';
 
-  /** When set, allows the user to navigate the carousel in the same direction indefinitely */
+  /** When set, allows the user to navigate the carousel in the same direction indefinitely. */
   @property({ type: Boolean, reflect: true }) loop = false;
 
-  /** When set, show the carousel's navigation controls */
+  /** When set, show the carousel's navigation controls. */
   @property({ type: Boolean, reflect: true, attribute: 'show-controls' }) showControls = false;
 
-  /** When set, show the carousel's pagination indicators */
+  /** When set, show the carousel's pagination indicators. */
   @property({ type: Boolean, reflect: true, attribute: 'show-pagination' }) showPagination = false;
+
+  /** When set, the slides will scroll automatically when the user is not interacting with them.  */
+  @property({ type: Boolean, reflect: true }) autoplay = false;
+
+  /** Specify the interval between each scroll  */
+  @property({ type: Number }) autoplayInterval = 3000;
 
   @query('slot:not([name])') defaultSlot: HTMLSlotElement;
   @query('.carousel__slides') slidesContainer: HTMLDivElement;
 
   @state() activeSlide = 0;
 
+  private autoplayTimerId: number;
   private slides = this.getElementsByTagName('sl-carousel-item');
   private intersectionObserver: IntersectionObserver;
   private intersectionObserverEntries = new Map<Element, IntersectionObserverEntry>();
 
   getSlides({ excludeClones = true }: { excludeClones?: boolean } = {}) {
     return [...this.slides].filter(slide => !excludeClones || !slide.hasAttribute('data-clone'));
+  }
+
+  /**
+   * Move the carousel to the previous slide.
+   */
+  prevSlide(behavior: ScrollBehavior = 'smooth') {
+    this.scrollToSlide(this.activeSlide - 1, behavior);
+  }
+
+  /**
+   * Move the carousel to the next slide.
+   */
+  nextSlide(behavior: ScrollBehavior = 'smooth') {
+    this.scrollToSlide(this.activeSlide + 1, behavior);
+  }
+
+  scrollToSlide(index: number, behavior: ScrollBehavior = 'smooth') {
+    const slides = this.getSlides({ excludeClones: false });
+    const normalizedIndex = (index + slides.length) % slides.length;
+
+    scrollIntoView(slides.at(normalizedIndex)!, this.slidesContainer, 'both', behavior);
   }
 
   @debounce(100)
@@ -116,29 +145,42 @@ export default class SlCarousel extends LitElement {
     intersectionObserver.takeRecords();
   }
 
-  handlePrevClick() {
-    this.scrollToSlide(this.activeSlide - 1);
-  }
+  pauseAutoplay = () => {
+    clearInterval(this.autoplayTimerId);
+  };
 
-  handleNextClick() {
-    this.scrollToSlide(this.activeSlide + 1);
+  resumeAutoplay = () => {
+    if (this.autoplay) {
+      this.autoplayTimerId = window.setInterval(() => {
+        this.nextSlide();
+      }, this.autoplayInterval);
+    }
+  };
+
+  @watch('autoplay')
+  handleAutoplayChange() {
+    this.pauseAutoplay();
+    this.resumeAutoplay();
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.intersectionObserver.disconnect();
-  }
 
-  scrollToSlide(index: number, behavior: ScrollBehavior = 'smooth') {
-    const slides = this.getSlides({ excludeClones: false });
-    const normalizedIndex = (index + slides.length) % slides.length;
-
-    slides.at(normalizedIndex)!.scrollIntoView({ block: 'nearest', behavior });
+    this.removeEventListener('mouseenter', this.pauseAutoplay);
+    this.removeEventListener('focusin', this.pauseAutoplay);
+    this.removeEventListener('mouseleave', this.resumeAutoplay);
+    this.removeEventListener('focusout', this.resumeAutoplay);
   }
 
   protected firstUpdated(): void {
     this.setAttribute('tabindex', '-1');
     this.setAttribute('aria-roledescription', 'carousel');
+
+    this.addEventListener('mouseenter', this.pauseAutoplay);
+    this.addEventListener('focusin', this.pauseAutoplay);
+    this.addEventListener('mouseleave', this.resumeAutoplay);
+    this.addEventListener('focusout', this.resumeAutoplay);
 
     this.scrollToSlide(0, 'auto');
 
@@ -156,13 +198,9 @@ export default class SlCarousel extends LitElement {
     this.intersectionObserver = intersectionObserver;
 
     this.handleLoopChange();
-
-    // Pagination and controls won't render until the first update has happened
-    // so let's trigger one more to let them update.
-    this.requestUpdate();
   }
 
-  renderPagination = () => {
+  private renderPagination = () => {
     const slides = this.getSlides();
     const slidesCount = slides.length;
 
@@ -192,7 +230,7 @@ export default class SlCarousel extends LitElement {
     `;
   };
 
-  renderControls = () => {
+  private renderControls = () => {
     const loop = this.loop;
     const slides = this.getSlides();
     const slidesCount = slides.length;
@@ -211,7 +249,7 @@ export default class SlCarousel extends LitElement {
           ?disabled="${prevEnabled}"
           library="system"
           name="chevron-left"
-          @click="${this.handlePrevClick}"
+          @click="${() => this.prevSlide()}"
         ></sl-icon-button>
 
         <sl-icon-button
@@ -220,7 +258,7 @@ export default class SlCarousel extends LitElement {
           ?disabled="${nextEnabled}"
           library="system"
           name="chevron-right"
-          @click="${this.handleNextClick}"
+          @click="${() => this.nextSlide()}"
         ></sl-icon-button>
       </nav>
     `;
@@ -237,8 +275,7 @@ export default class SlCarousel extends LitElement {
           <slot></slot>
         </div>
 
-        ${when(this.hasUpdated && this.showPagination, this.renderPagination)}
-        ${when(this.hasUpdated && this.showControls, this.renderControls)}
+        ${when(this.showPagination, this.renderPagination)} ${when(this.showControls, this.renderControls)}
       </section>
     `;
   }

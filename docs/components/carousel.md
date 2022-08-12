@@ -9,6 +9,7 @@ A description of the component goes here.
   <sl-switch name="loop"> Loop </sl-switch>
   <sl-switch name="show-controls"> Show controls </sl-switch>
   <sl-switch name="show-pagination"> Show pagination </sl-switch>
+  <sl-switch name="autoplay"> Autoplay (3s) </sl-switch>
 </div>
 <sl-divider></sl-divider>
 <sl-carousel heading="Example carousel">
@@ -35,10 +36,12 @@ A description of the component goes here.
   const loop = options.querySelector('sl-switch[name="loop"]');
   const showControls = options.querySelector('sl-switch[name="show-controls"]');
   const showPagination = options.querySelector('sl-switch[name="show-pagination"]');
+  const autoplay = options.querySelector('sl-switch[name="autoplay"]');
 
   loop.addEventListener('sl-change', () => (carousel.loop = loop.checked));
   showControls.addEventListener('sl-change', () => (carousel.showControls = showControls.checked));
   showPagination.addEventListener('sl-change', () => (carousel.showPagination = showPagination.checked));
+  autoplay.addEventListener('sl-change', () => (carousel.autoplay = autoplay.checked));
 
   carousel.addEventListener('sl-slide-change', e => {
     console.log(e.detail);
@@ -51,7 +54,7 @@ A description of the component goes here.
 ### Vertical scrolling
 
 ```html preview
-<sl-carousel class="vertical" heading="Vertical scrolling" loop show-pagination>
+<sl-carousel class="vertical" loop show-pagination>
   <sl-carousel-item><img src="https://picsum.photos/530/300/?random=1" /></sl-carousel-item>
   <sl-carousel-item><img src="https://picsum.photos/530/300/?random=2" /></sl-carousel-item>
   <sl-carousel-item><img src="https://picsum.photos/530/300/?random=3" /></sl-carousel-item>
@@ -66,13 +69,12 @@ A description of the component goes here.
   .vertical::part(slides) {
     scroll-snap-type: y mandatory;
     grid-auto-flow: row;
-    overflow: hidden scroll;
     aspect-ratio: auto 16/9;
   }
 
   .vertical::part(base) {
     grid-template-areas:
-      'heading heading .'
+      'heading heading controls'
       'slides slides pagination'
       '. . .';
   }
@@ -101,7 +103,7 @@ A description of the component goes here.
 
 <style>
   .scroll-hint::part(slides) {
-    padding-inline: 5rem;
+    padding-inline: 10%;
   }
 </style>
 ```
@@ -109,7 +111,7 @@ A description of the component goes here.
 ### HTMLContent
 
 ```html preview
-<sl-carousel class="presentation" show-pagination>
+<sl-carousel class="presentation" show-pagination show-controls>
   <sl-carousel-item>
     <div class="presentation__title">Slide 1</div>
     <div class="presentation__subtitle">Lorem ipsum dolor sit</div>
