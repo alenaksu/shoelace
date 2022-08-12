@@ -13,11 +13,11 @@ A description of the component goes here.
 </div>
 <sl-divider></sl-divider>
 <sl-carousel heading="Example carousel">
-  <sl-carousel-item><img src="https://picsum.photos/530/300/?random=1" /></sl-carousel-item>
-  <sl-carousel-item><img src="https://picsum.photos/530/300/?random=2" /></sl-carousel-item>
-  <sl-carousel-item><img src="https://picsum.photos/530/300/?random=3" /></sl-carousel-item>
-  <sl-carousel-item><img src="https://picsum.photos/530/300/?random=4" /></sl-carousel-item>
-  <sl-carousel-item><img src="https://picsum.photos/530/300/?random=5" /></sl-carousel-item>
+  <sl-carousel-item label="A random picture"><img src="https://picsum.photos/530/300/?random=1" /></sl-carousel-item>
+  <sl-carousel-item label="A random picture"><img src="https://picsum.photos/530/300/?random=2" /></sl-carousel-item>
+  <sl-carousel-item label="A random picture"><img src="https://picsum.photos/530/300/?random=3" /></sl-carousel-item>
+  <sl-carousel-item label="A random picture"><img src="https://picsum.photos/530/300/?random=4" /></sl-carousel-item>
+  <sl-carousel-item label="A random picture"><img src="https://picsum.photos/530/300/?random=5" /></sl-carousel-item>
 </sl-carousel>
 <style>
   img {

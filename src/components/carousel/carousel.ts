@@ -1,9 +1,11 @@
+import { LocalizeController } from '@shoelace-style/localize';
 import { LitElement, html } from 'lit';
 import { customElement, eventOptions, property, query, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { map } from 'lit/directives/map.js';
 import { range } from 'lit/directives/range.js';
 import { when } from 'lit/directives/when.js';
+import { prefersReducedMotion } from 'src/internal/animate';
 import { debounce } from 'src/internal/debounce';
 import { emit } from 'src/internal/event';
 import { scrollIntoView } from 'src/internal/scroll';
@@ -59,9 +61,10 @@ export default class SlCarousel extends LitElement {
   @state() activeSlide = 0;
 
   private autoplayTimerId: number;
-  private slides = this.getElementsByTagName('sl-carousel-item');
+  private readonly slides = this.getElementsByTagName('sl-carousel-item');
   private intersectionObserver: IntersectionObserver;
-  private intersectionObserverEntries = new Map<Element, IntersectionObserverEntry>();
+  private readonly intersectionObserverEntries = new Map<Element, IntersectionObserverEntry>();
+  private readonly localize = new LocalizeController(this);
 
   getSlides({ excludeClones = true }: { excludeClones?: boolean } = {}) {
     return [...this.slides].filter(slide => !excludeClones || !slide.hasAttribute('data-clone'));
@@ -85,20 +88,26 @@ export default class SlCarousel extends LitElement {
     const slides = this.getSlides({ excludeClones: false });
     const normalizedIndex = (index + slides.length) % slides.length;
 
-    scrollIntoView(slides.at(normalizedIndex)!, this.slidesContainer, 'both', behavior);
+    scrollIntoView(
+      slides.at(normalizedIndex)!,
+      this.slidesContainer,
+      'both',
+      prefersReducedMotion() ? 'auto' : behavior
+    );
   }
 
   @debounce(100)
   @eventOptions({ passive: true })
   handleScroll() {
     this.intersectionObserverEntries.forEach(entry => {
-      entry.target.toggleAttribute('inert', !entry.isIntersecting);
+      const slide = entry.target as SlCarouselItem;
+      slide.toggleAttribute('inert', !entry.isIntersecting);
 
       if (entry.isIntersecting) {
         const slides = this.getSlides({ excludeClones: false });
-        const intersectedSlide = slides.indexOf(entry.target as SlCarouselItem);
+        const intersectedSlide = slides.indexOf(slide);
 
-        if (this.loop && entry.target.hasAttribute('data-clone')) {
+        if (this.loop && slide.hasAttribute('data-clone')) {
           if (intersectedSlide === 0) {
             // If we are on the last slide clone, move the focus on the last slide
             this.scrollToSlide(-2, 'auto');
@@ -108,7 +117,7 @@ export default class SlCarousel extends LitElement {
           }
         } else if (this.activeSlide !== intersectedSlide) {
           this.activeSlide = intersectedSlide;
-          emit(this, 'sl-slide-change', { detail: entry.target });
+          emit(this, 'sl-slide-change', { detail: slide });
         }
       }
     });
@@ -147,6 +156,7 @@ export default class SlCarousel extends LitElement {
 
   pauseAutoplay = () => {
     clearInterval(this.autoplayTimerId);
+    this.autoplayTimerId = 0;
   };
 
   resumeAutoplay = () => {
@@ -174,7 +184,7 @@ export default class SlCarousel extends LitElement {
   }
 
   protected firstUpdated(): void {
-    this.setAttribute('tabindex', '-1');
+    this.setAttribute('tabindex', '0');
     this.setAttribute('aria-roledescription', 'carousel');
 
     this.addEventListener('mouseenter', this.pauseAutoplay);
@@ -213,17 +223,15 @@ export default class SlCarousel extends LitElement {
           range(slidesCount),
           i =>
             html`
-              <span
+              <button
                 @click="${() => this.scrollToSlide(i + Number(this.loop))}"
-                aria-selected="${i === activeSlideIndex ? 'true' : 'false'}"
-                tabindex="${i === activeSlideIndex ? '0' : '-1'}"
-                @keypress=""
+                aria-current="${i === activeSlideIndex ? 'true' : 'false'}"
+                aria-label="${i + 1} of ${slidesCount}"
                 class="${classMap({
                   carousel__indicator: true,
                   'carousel__indicator--active': i === activeSlideIndex
                 })}"
-              >
-              </span>
+              ></button>
             `
         )}
       </nav>
@@ -244,6 +252,7 @@ export default class SlCarousel extends LitElement {
     return html`
       <nav part="controls" class="carousel__controls">
         <sl-icon-button
+          label="Prev slide"
           part="prev-button"
           class="carousel__prevButton"
           ?disabled="${prevEnabled}"
@@ -253,6 +262,7 @@ export default class SlCarousel extends LitElement {
         ></sl-icon-button>
 
         <sl-icon-button
+          label="Next slide"
           part="next-button"
           class="carousel__nextButton"
           ?disabled="${nextEnabled}"
@@ -265,17 +275,25 @@ export default class SlCarousel extends LitElement {
   };
 
   render() {
+    const activeSlideElement = this.getSlides().at(this.activeSlide);
+
     return html`
       <section part="base" class="carousel" aria-roledescription="carousel">
         <div part="heading" class="carousel__heading">
           <slot name="heading">${this.heading}</slot>
         </div>
 
-        <div part="slides" class="carousel__slides" @scroll="${this.handleScroll}" role="group" aria-live="polite">
+        <div part="slides" class="carousel__slides" @scroll="${this.handleScroll}" role="group" aria-live="off">
+          <sl-visually-hidden
+            aria-live="${this.autoplay && this.autoplayTimerId ? 'off' : 'polite'}"
+            aria-atomic="true"
+          >
+            Slide ${this.activeSlide + 1} of ${this.getSlides().length} ${activeSlideElement?.label}
+          </sl-visually-hidden>
           <slot></slot>
         </div>
 
-        ${when(this.showPagination, this.renderPagination)} ${when(this.showControls, this.renderControls)}
+        ${when(this.showControls, this.renderControls)} ${when(this.showPagination, this.renderPagination)}
       </section>
     `;
   }

@@ -17,6 +17,8 @@ export default css`
 
     display: grid;
 
+    gap: var(--sl-spacing-small);
+
     grid-template-columns: min-content 1fr min-content;
     grid-template-rows: min-content 1fr min-content;
     grid-template-areas:
@@ -92,12 +94,14 @@ export default css`
   .carousel__indicator {
     display: block;
     cursor: pointer;
+    background: none;
+    border: 0;
     border-radius: var(--sl-border-radius-circle);
     width: var(--sl-spacing-small);
     height: var(--sl-spacing-small);
     background-color: var(--sl-color-neutral-600);
     will-change: transform;
-    transition: var(--sl-transition-fast) transform;
+    transition: var(--sl-transition-fast) transform ease-ins;
   }
 
   .carousel__indicator--active {
