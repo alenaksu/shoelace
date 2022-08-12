@@ -173,6 +173,23 @@ export default class SlCarousel extends LitElement {
     this.resumeAutoplay();
   }
 
+  connectedCallback(): void {
+    super.connectedCallback();
+
+    const intersectionObserver = new IntersectionObserver(
+      (entries: IntersectionObserverEntry[]) => {
+        entries.forEach(entry => {
+          this.intersectionObserverEntries.set(entry.target, entry);
+        });
+      },
+      {
+        root: this.slidesContainer,
+        threshold: 0.6
+      }
+    );
+    this.intersectionObserver = intersectionObserver;
+  }
+
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.intersectionObserver.disconnect();
@@ -193,19 +210,6 @@ export default class SlCarousel extends LitElement {
     this.addEventListener('focusout', this.resumeAutoplay);
 
     this.scrollToSlide(0, 'auto');
-
-    const intersectionObserver = new IntersectionObserver(
-      (entries: IntersectionObserverEntry[]) => {
-        entries.forEach(entry => {
-          this.intersectionObserverEntries.set(entry.target, entry);
-        });
-      },
-      {
-        root: this.slidesContainer,
-        threshold: 0.6
-      }
-    );
-    this.intersectionObserver = intersectionObserver;
 
     this.handleLoopChange();
   }
