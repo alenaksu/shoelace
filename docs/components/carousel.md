@@ -179,7 +179,7 @@ A description of the component goes here.
 
     carousel.addEventListener('sl-slide-change', e => {
       thumbnails.querySelector('.active').classList.remove('active');
-      thumbnails.querySelector(`:nth-child(${e.detail.slideIndex})`).classList.add('active');
+      thumbnails.querySelector(`:nth-child(${e.detail.slideIndex + 1})`).classList.add('active');
     });
   }
 </script>
