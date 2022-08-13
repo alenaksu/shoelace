@@ -147,6 +147,8 @@ export default class SlCarousel extends LitElement {
       const firstClone = slides.at(0)?.cloneNode(true) as HTMLElement;
       firstClone.setAttribute('data-clone', '0');
       this.append(firstClone);
+
+      this.scrollToSlide(this.activeSlide, 'auto');
     }
 
     this.getSlides({ excludeClones: false }).forEach(slide => {
