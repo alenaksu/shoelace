@@ -56,7 +56,8 @@ export default class SlCarousel extends LitElement {
   @property({ type: Number }) autoplayInterval = 3000;
 
   @query('slot:not([name])') defaultSlot: HTMLSlotElement;
-  @query('.carousel__slides') slidesContainer: HTMLDivElement;
+  @query('.carousel__slides') slidesContainer: HTMLElement;
+  @query('.carousel__pagination') paginationContainer: HTMLElement;
 
   @state() activeSlide = 0;
 
@@ -85,15 +86,13 @@ export default class SlCarousel extends LitElement {
   }
 
   scrollToSlide(index: number, behavior: ScrollBehavior = 'smooth') {
-    const slides = this.getSlides({ excludeClones: false });
-    const normalizedIndex = (index + slides.length) % slides.length;
+    const slidesCount = this.getSlides().length;
+    this.activeSlide = (index + slidesCount) % slidesCount;
 
-    scrollIntoView(
-      slides.at(normalizedIndex)!,
-      this.slidesContainer,
-      'both',
-      prefersReducedMotion() ? 'auto' : behavior
-    );
+    const slidesWithClones = this.getSlides({ excludeClones: false });
+    const slide = slidesWithClones.at((index + Number(this.loop) + slidesWithClones.length) % slidesWithClones.length)!;
+
+    scrollIntoView(slide, this.slidesContainer, 'both', prefersReducedMotion() ? 'auto' : behavior);
   }
 
   @debounce(100)
@@ -104,20 +103,20 @@ export default class SlCarousel extends LitElement {
       slide.toggleAttribute('inert', !entry.isIntersecting);
 
       if (entry.isIntersecting) {
-        const slides = this.getSlides({ excludeClones: false });
-        const intersectedSlide = slides.indexOf(slide);
-
         if (this.loop && slide.hasAttribute('data-clone')) {
-          if (intersectedSlide === 0) {
-            // If we are on the last slide clone, move the focus on the last slide
-            this.scrollToSlide(-2, 'auto');
-          } else if (intersectedSlide === slides.length - 1) {
-            // If we are on the first slide clone, move the focus on the first slide
-            this.scrollToSlide(1, 'auto');
-          }
-        } else if (this.activeSlide !== intersectedSlide) {
-          this.activeSlide = intersectedSlide;
-          emit(this, 'sl-slide-change', { detail: slide });
+          const clonePosition = slide.getAttribute('data-clone');
+
+          this.scrollToSlide(Number(clonePosition), 'auto');
+        } else {
+          const slides = this.getSlides();
+          const intersectedSlide = slides.indexOf(slide);
+
+          emit(this, 'sl-slide-change', {
+            detail: {
+              slideIndex: intersectedSlide,
+              slide: entry.target
+            }
+          });
         }
       }
     });
@@ -140,18 +139,17 @@ export default class SlCarousel extends LitElement {
 
     if (this.loop) {
       const lastClone = slides.at(-1)?.cloneNode(true) as HTMLElement;
-      lastClone.setAttribute('data-clone', '');
+      lastClone.setAttribute('data-clone', String(slides.length - 1));
       this.prepend(lastClone);
 
       const firstClone = slides.at(0)?.cloneNode(true) as HTMLElement;
-      firstClone.setAttribute('data-clone', '');
+      firstClone.setAttribute('data-clone', '0');
       this.append(firstClone);
     }
 
     this.getSlides({ excludeClones: false }).forEach(slide => {
       intersectionObserver.observe(slide);
     });
-    intersectionObserver.takeRecords();
   }
 
   pauseAutoplay = () => {
@@ -171,6 +169,26 @@ export default class SlCarousel extends LitElement {
   handleAutoplayChange() {
     this.pauseAutoplay();
     this.resumeAutoplay();
+  }
+
+  handlePaginationKeydown(event: KeyboardEvent) {
+    if (!['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) {
+      return;
+    }
+
+    const indicators = this.paginationContainer.querySelectorAll('.carousel__indicator');
+    const isRtl = this.localize.dir() === 'rtl';
+    const isLtr = this.localize.dir() === 'ltr';
+
+    if ((isLtr && event.key === 'ArrowRight') || (isRtl && event.key === 'ArrowLeft')) {
+      this.nextSlide();
+    } else if ((isLtr && event.key === 'ArrowLeft') || (isRtl && event.key === 'ArrowRight')) {
+      this.prevSlide();
+    }
+
+    // Move the focus to the current active indicator
+    const indicator = indicators.item(this.activeSlide) as HTMLElement;
+    indicator.focus();
   }
 
   connectedCallback(): void {
@@ -195,21 +213,18 @@ export default class SlCarousel extends LitElement {
     this.intersectionObserver.disconnect();
 
     this.removeEventListener('mouseenter', this.pauseAutoplay);
-    this.removeEventListener('focusin', this.pauseAutoplay);
     this.removeEventListener('mouseleave', this.resumeAutoplay);
+    this.removeEventListener('focusin', this.pauseAutoplay);
     this.removeEventListener('focusout', this.resumeAutoplay);
   }
 
   protected firstUpdated(): void {
-    this.setAttribute('tabindex', '0');
     this.setAttribute('aria-roledescription', 'carousel');
 
     this.addEventListener('mouseenter', this.pauseAutoplay);
-    this.addEventListener('focusin', this.pauseAutoplay);
     this.addEventListener('mouseleave', this.resumeAutoplay);
+    this.addEventListener('focusin', this.pauseAutoplay);
     this.addEventListener('focusout', this.resumeAutoplay);
-
-    this.scrollToSlide(0, 'auto');
 
     this.handleLoopChange();
   }
@@ -218,24 +233,26 @@ export default class SlCarousel extends LitElement {
     const slides = this.getSlides();
     const slidesCount = slides.length;
 
-    // Normalize index to not take clones into account
-    const activeSlideIndex = (this.activeSlide - Number(this.loop) + slidesCount) % slidesCount;
+    const activeSlideIndex = this.activeSlide;
 
     return html`
-      <nav part="pagination" class="carousel__pagination">
+      <nav part="pagination" class="carousel__pagination" role="tablist" @keydown="${this.handlePaginationKeydown}">
         ${map(
           range(slidesCount),
           i =>
             html`
-              <button
-                @click="${() => this.scrollToSlide(i + Number(this.loop))}"
-                aria-current="${i === activeSlideIndex ? 'true' : 'false'}"
-                aria-label="${i + 1} of ${slidesCount}"
-                class="${classMap({
-                  carousel__indicator: true,
-                  'carousel__indicator--active': i === activeSlideIndex
-                })}"
-              ></button>
+              <span role="presentation">
+                <button
+                  @click="${() => this.scrollToSlide(i + Number(this.loop))}"
+                  aria-selected="${i === activeSlideIndex ? 'true' : 'false'}"
+                  tabindex="${i === activeSlideIndex ? '0' : '-1'}"
+                  aria-label="${i + 1} of ${slidesCount}"
+                  class="${classMap({
+                    carousel__indicator: true,
+                    'carousel__indicator--active': i === activeSlideIndex
+                  })}"
+                ></button>
+              </span>
             `
         )}
       </nav>
@@ -247,11 +264,10 @@ export default class SlCarousel extends LitElement {
     const slides = this.getSlides();
     const slidesCount = slides.length;
 
-    // Normalize index to not take clones into account
-    const activeSlideIndex = (this.activeSlide - Number(loop) + slidesCount) % slidesCount;
+    const activeSlideIndex = this.activeSlide;
 
     const prevEnabled = !loop && activeSlideIndex === 0;
-    const nextEnabled = !loop && activeSlideIndex === slides.length - 1;
+    const nextEnabled = !loop && activeSlideIndex === slidesCount - 1;
     const isLtr = this.localize.dir() === 'ltr';
 
     return html`

@@ -136,4 +136,53 @@ A description of the component goes here.
 </style>
 ```
 
+### Thumbnail preview
+
+```html preview
+<sl-carousel class="carousel-thumbnails" show-controls loop>
+  <sl-carousel-item><img src="https://picsum.photos/530/300/?random=1" /></sl-carousel-item>
+  <sl-carousel-item><img src="https://picsum.photos/530/300/?random=2" /></sl-carousel-item>
+  <sl-carousel-item><img src="https://picsum.photos/530/300/?random=3" /></sl-carousel-item>
+  <sl-carousel-item><img src="https://picsum.photos/530/300/?random=4" /></sl-carousel-item>
+  <sl-carousel-item><img src="https://picsum.photos/530/300/?random=5" /></sl-carousel-item>
+</sl-carousel>
+<div class="thumbnails">
+  <img class="active" src="https://picsum.photos/530/300/?random=1" />
+  <img src="https://picsum.photos/530/300/?random=2" />
+  <img src="https://picsum.photos/530/300/?random=3" />
+  <img src="https://picsum.photos/530/300/?random=4" />
+  <img src="https://picsum.photos/530/300/?random=5" />
+</div>
+<style>
+  .thumbnails {
+    display: flex;
+    justify-content: center;
+    gap: var(--sl-spacing-small);
+  }
+
+  .thumbnails img {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    opacity: 0.3;
+    transition: 250ms opacity;
+  }
+
+  .thumbnails .active {
+    opacity: 1;
+  }
+</style>
+<script>
+  {
+    const carousel = document.querySelector('.carousel-thumbnails');
+    const thumbnails = document.querySelector('.thumbnails');
+
+    carousel.addEventListener('sl-slide-change', e => {
+      thumbnails.querySelector('.active').classList.remove('active');
+      thumbnails.querySelector(`:nth-child(${e.detail.slideIndex})`).classList.add('active');
+    });
+  }
+</script>
+```
+
 [component-metadata:sl-carousel]
