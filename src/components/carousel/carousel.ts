@@ -111,6 +111,8 @@ export default class SlCarousel extends LitElement {
           const slides = this.getSlides();
           const intersectedSlide = slides.indexOf(slide);
 
+          this.activeSlide = intersectedSlide;
+
           emit(this, 'sl-slide-change', {
             detail: {
               slideIndex: intersectedSlide,
