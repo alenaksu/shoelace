@@ -72,6 +72,13 @@ export default class SlCarousel extends LitElement {
   }
 
   /**
+   * Returns the active slide element.
+   */
+  get activeSlideElement(): SlCarouselItem {
+    return this.getSlides().at(this.activeSlide)!;
+  }
+
+  /**
    * Move the carousel to the previous slide.
    */
   prevSlide(behavior: ScrollBehavior = 'smooth') {
@@ -90,7 +97,8 @@ export default class SlCarousel extends LitElement {
     this.activeSlide = (index + slidesCount) % slidesCount;
 
     const slidesWithClones = this.getSlides({ excludeClones: false });
-    const slide = slidesWithClones.at((index + Number(this.loop) + slidesWithClones.length) % slidesWithClones.length)!;
+    const normalizedIndex = (index + Number(this.loop) + slidesWithClones.length) % slidesWithClones.length;
+    const slide = slidesWithClones.at(normalizedIndex)!;
 
     scrollIntoView(slide, this.slidesContainer, 'both', prefersReducedMotion() ? 'auto' : behavior);
   }
@@ -104,9 +112,10 @@ export default class SlCarousel extends LitElement {
 
       if (entry.isIntersecting) {
         if (this.loop && slide.hasAttribute('data-clone')) {
-          const clonePosition = slide.getAttribute('data-clone');
+          const clonePosition = Number(slide.getAttribute('data-clone'));
 
-          this.scrollToSlide(Number(clonePosition), 'auto');
+          // Scrolls to the original slide without animating, so the user won't notice that the position has changed
+          this.scrollToSlide(clonePosition, 'auto');
         } else {
           const slides = this.getSlides();
           const intersectedSlide = slides.indexOf(slide);
@@ -148,6 +157,7 @@ export default class SlCarousel extends LitElement {
       firstClone.setAttribute('data-clone', '0');
       this.append(firstClone);
 
+      // Because the dom has changed, restore the scroll position to the active slide
       this.scrollToSlide(this.activeSlide, 'auto');
     }
 
@@ -180,7 +190,8 @@ export default class SlCarousel extends LitElement {
       return;
     }
 
-    const indicators = this.paginationContainer.querySelectorAll('.carousel__indicator');
+    event.preventDefault();
+
     const isRtl = this.localize.dir() === 'rtl';
     const isLtr = this.localize.dir() === 'ltr';
 
@@ -191,7 +202,9 @@ export default class SlCarousel extends LitElement {
     }
 
     // Move the focus to the current active indicator
-    const indicator = indicators.item(this.activeSlide) as HTMLElement;
+    const indicator: HTMLElement = this.paginationContainer.querySelector(
+      `[role=presentation]:nth-of-type(${this.activeSlide + 1}) .carousel__indicator`
+    )!;
     indicator.focus();
   }
 
@@ -201,6 +214,7 @@ export default class SlCarousel extends LitElement {
     const intersectionObserver = new IntersectionObserver(
       (entries: IntersectionObserverEntry[]) => {
         entries.forEach(entry => {
+          // Store all the entries in a map to be processed when the scroll ends
           this.intersectionObserverEntries.set(entry.target, entry);
         });
       },
@@ -237,23 +251,30 @@ export default class SlCarousel extends LitElement {
     const slides = this.getSlides();
     const slidesCount = slides.length;
 
-    const activeSlideIndex = this.activeSlide;
+    const activeSlide = this.activeSlide;
 
     return html`
-      <nav part="pagination" class="carousel__pagination" role="tablist" @keydown="${this.handlePaginationKeydown}">
+      <nav
+        part="pagination"
+        role="tablist"
+        class="carousel__pagination"
+        aria-controls="slides"
+        @keydown="${this.handlePaginationKeydown}"
+      >
         ${map(
           range(slidesCount),
           i =>
             html`
               <span role="presentation">
                 <button
-                  @click="${() => this.scrollToSlide(i + Number(this.loop))}"
-                  aria-selected="${i === activeSlideIndex ? 'true' : 'false'}"
-                  tabindex="${i === activeSlideIndex ? '0' : '-1'}"
+                  @click="${() => this.scrollToSlide(i)}"
+                  tabindex="${i === activeSlide ? '0' : '-1'}"
+                  aria-selected="${i === activeSlide ? 'true' : 'false'}"
                   aria-label="${i + 1} of ${slidesCount}"
+                  role="tab"
                   class="${classMap({
                     carousel__indicator: true,
-                    'carousel__indicator--active': i === activeSlideIndex
+                    'carousel__indicator--active': i === activeSlide
                   })}"
                 ></button>
               </span>
@@ -264,43 +285,49 @@ export default class SlCarousel extends LitElement {
   };
 
   private renderControls = () => {
-    const loop = this.loop;
+    const { loop, activeSlide } = this;
     const slides = this.getSlides();
     const slidesCount = slides.length;
 
-    const activeSlideIndex = this.activeSlide;
-
-    const prevEnabled = !loop && activeSlideIndex === 0;
-    const nextEnabled = !loop && activeSlideIndex === slidesCount - 1;
+    const prevEnabled = loop || activeSlide > 0;
+    const nextEnabled = loop || activeSlide < slidesCount - 1;
     const isLtr = this.localize.dir() === 'ltr';
 
     return html`
-      <nav part="controls" class="carousel__controls">
-        <sl-icon-button
-          label="Prev slide"
+      <nav part="controls" class="carousel__controls" aria-controls="slides">
+        <button
+          @click="${prevEnabled ? () => this.prevSlide() : null}"
+          aria-disabled="${prevEnabled ? 'false' : 'true'}"
+          class="${classMap({
+            carousel__controlButton: true,
+            'carousel__controlButton--prev': true,
+            'carousel__controlButton--disabled': !prevEnabled
+          })}"
+          aria-label="Prev slide"
           part="prev-button"
-          class="carousel__prevButton"
-          ?disabled="${prevEnabled}"
-          library="system"
-          name="${isLtr ? 'chevron-left' : 'chevron-right'}"
-          @click="${() => this.prevSlide()}"
-        ></sl-icon-button>
+        >
+          <sl-icon library="system" name="${isLtr ? 'chevron-left' : 'chevron-right'}"></sl-icon>
+        </button>
 
-        <sl-icon-button
-          label="Next slide"
+        <button
+          @click="${nextEnabled ? () => this.nextSlide() : null}"
+          aria-disabled="${nextEnabled ? 'false' : 'true'}"
+          class="${classMap({
+            carousel__controlButton: true,
+            'carousel__controlButton--next': true,
+            'carousel__controlButton--disabled': !nextEnabled
+          })}"
+          aria-label="Next slide"
           part="next-button"
-          class="carousel__nextButton"
-          ?disabled="${nextEnabled}"
-          library="system"
-          name="${isLtr ? 'chevron-right' : 'chevron-left'}"
-          @click="${() => this.nextSlide()}"
-        ></sl-icon-button>
+        >
+          <sl-icon library="system" name="${isLtr ? 'chevron-right' : 'chevron-left'}"></sl-icon>
+        </button>
       </nav>
     `;
   };
 
   render() {
-    const activeSlideElement = this.getSlides().at(this.activeSlide);
+    const activeSlideElement = this.activeSlideElement;
 
     return html`
       <section part="base" class="carousel" aria-roledescription="carousel">
@@ -308,13 +335,21 @@ export default class SlCarousel extends LitElement {
           <slot name="heading">${this.heading}</slot>
         </div>
 
-        <div part="slides" class="carousel__slides" @scroll="${this.handleScroll}" role="group" aria-live="off">
+        <div
+          id="slides"
+          part="slides"
+          class="carousel__slides"
+          @scroll="${this.handleScroll}"
+          role="group"
+          aria-live="off"
+        >
           <sl-visually-hidden
             aria-live="${this.autoplay && this.autoplayTimerId ? 'off' : 'polite'}"
             aria-atomic="true"
           >
             Slide ${this.activeSlide + 1} of ${this.getSlides().length} ${activeSlideElement?.label}
           </sl-visually-hidden>
+
           <slot></slot>
         </div>
 

@@ -81,12 +81,36 @@ export default css`
     font-size: var(--controls-size);
   }
 
-  .carousel__prevButton {
+  .carousel__controlButton {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    background: none;
+    border: none;
+    border-radius: var(--sl-border-radius-medium);
+    font-size: inherit;
+    color: var(--sl-color-neutral-600);
+    padding: var(--sl-spacing-x-small);
+    cursor: pointer;
+    transition: var(--sl-transition-medium) color;
+    appearance: none;
+  }
+
+  .carousel__controlButton--disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .carousel__controlButton--disabled::part(base) {
+    pointer-events: none;
+  }
+
+  .carousel__controlButton--prev {
     grid-column: 1;
     grid-row: 2;
   }
 
-  .carousel__nextButton {
+  .carousel__controlButton--next {
     grid-column: 3;
     grid-row: 2;
   }
